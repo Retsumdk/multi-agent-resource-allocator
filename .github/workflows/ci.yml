@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Typecheck src and tests
+        run: bun run typecheck
+      - name: Build
+        run: bun run build
+      - name: Test
+        run: bun test
+      - name: Verify demo determinism
+        run: |
+          a=$(bun src/cli.ts demo | md5sum)
+          b=$(bun src/cli.ts demo | md5sum)
+          test "$a" = "$b"
+
+  node-install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install the package from GitHub into a scratch project
+        run: |
+          cd "$(mktemp -d)"
+          npm init -y > /dev/null
+          npm install github:Retsumdk/multi-agent-resource-allocator
+          node --input-type=module -e "import { allocate } from 'multi-agent-resource-allocator'; const r = allocate({ resources: { cpu: 4 }, agents: [{ id: 'a', demand: { cpu: 4 } }] }); if (r.allocations[0].allocated.cpu !== 4) throw new Error('bad allocation'); console.log('import ok');"
+          ./node_modules/.bin/mara version
