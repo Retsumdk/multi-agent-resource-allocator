@@ -34,6 +34,7 @@ Options:
   --file, -f   Path to the fleet spec JSON ("-" reads stdin)
   --steps      Grant steps per demand; higher is finer (default 64, max 4096)
   --json       Machine-readable output
+  --version    Print the version and exit
   --help, -h   Show help
 
 Exit codes:
@@ -66,6 +67,10 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
       flags.set("json", true);
       continue;
     }
+    if (token === "--version") {
+      flags.set("version", true);
+      continue;
+    }
     if (valueFlags.has(token)) {
       const value = argv[i + 1];
       if (value === undefined) throw new UsageError(`${token} requires a value`);
@@ -93,6 +98,9 @@ function asIntFlag(flags: Map<string, string | boolean>, name: string): number |
 export function runCli(argv: readonly string[]): CliResult {
   try {
     const { command, flags } = parseArgs(argv);
+    if (flags.has("version")) {
+      return { code: 0, stdout: `mara ${VERSION}\n`, stderr: "" };
+    }
 
     if (flags.has("help")) {
       if (command !== "" && !["help", "demo", "allocate", "version"].includes(command)) {
